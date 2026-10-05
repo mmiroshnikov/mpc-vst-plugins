@@ -19,6 +19,24 @@
       "reversible": true
     },
     {
+      "id": "hwremap",
+      "title": "hwremap: remap the hardware buttons (MPC Live, Force)",
+      "summary": "Open any screen from any button, with double taps, long presses and Shift layers. MPC Live: Pad Bank A-D open the top row of the Mode Menu, + and - (and their double taps) the second row. Force: Mixer twice = Master, Menu twice = Main Mode, Knobs short/long swapped. Rules in /sdcard/hwremap.conf, edited any time; Shift keeps the original function.",
+      "author": "mmiroshnikov",
+      "license": "MIT",
+      "docs": "tools/mpc_patch/hwremap/README.md",
+      "screenshot": "https://raw.githubusercontent.com/mmiroshnikov/akai_standalone_remap/9d2aa57a570b0c4788f88b04ca242bb82176c380/docs/mpc-live-remapped.jpg",
+      "script": {
+        "url": "https://raw.githubusercontent.com/sd88me/mpc-vst-plugins/8103b446dd741c6e73fcfee1fede3e98ad383722/tools/mpc_patch/hwremap/hwremap-patch.sh",
+        "sha256": "920a50b192be2c17390ce31b5316d3dcb8800c5805aac09594e64b4ff9aa38ea"
+      },
+      "supports": {"os": "MPC Live Gen1 (Hakai, MPC 3.9.1) and Force (stock 3.9.0) tested; other models with your own rules", "arch": "armv7l"},
+      "modifies": ["/data/hwremap", "/sdcard/hwremap.conf (only if absent; kept on uninstall)", "/usr/bin/az01-launch-MPC (Hakai only: its LD_PRELOAD lines)", "/etc/systemd/system/acvs.service.d/90-mpc-addins.conf (elsewhere: the LD_PRELOAD shared with the addins)"],
+      "backup": "/data/mpc-vst-plugins/backups",
+      "restarts_mpc": true,
+      "reversible": true
+    },
+    {
       "id": "drive-exec",
       "title": "Drive exec: run plugins from a noexec drive (an MPC/Force's SSD)",
       "summary": "UNTESTED on a device by this project (testers wanted, see issue #150). MPC cannot load a plugin from a drive mounted noexec: it is listed but only shows Load Plugin. This makes one folder of the drive (Synths) executable, through a small boot-time service; the drive itself stays noexec.",
