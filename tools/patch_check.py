@@ -62,6 +62,8 @@ def check(doc, root=ROOT, online=False):
             errors.append("%s: supports needs os and arch" % where)
         elif not all(MD5.fullmatch(str(m)) for m in sup.get("mpc_md5", [])):
             errors.append("%s: supports.mpc_md5 must be 32-hex checksums" % where)
+        if "screenshot" in p and not (isinstance(p["screenshot"], str) and p["screenshot"].startswith("https://")):
+            errors.append("%s: screenshot must be an https link" % where)
         doc_path = str(p["docs"])
         if doc_path.startswith("/") or ".." in doc_path.split("/") or not os.path.isfile(os.path.join(root, doc_path)):
             errors.append("%s: docs %r is not a file in the repository" % (where, doc_path))

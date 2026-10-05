@@ -40,6 +40,12 @@ func TestParsePatchesKeepsOnlyWhatIsSafe(t *testing.T) {
 	if _, err := parsePatches([]byte(`{"schema":2,"patches":[]}`)); err == nil {
 		t.Error("an unknown schema must be refused")
 	}
+	for shot, want := range map[string]string{"https://example.org/a.jpg": "https://example.org/a.jpg", "http://example.org/a.jpg": "", "javascript:alert(1)": ""} {
+		got, err := parsePatches([]byte(strings.Replace(fmt.Sprintf(goodPatchJSON, sum), `"reversible":true`, `"reversible":true,"screenshot":"`+shot+`"`, 1)))
+		if err != nil || len(got) != 1 || got[0].Screenshot != want {
+			t.Errorf("screenshot %q: kept %v %+v, want %q", shot, err, got, want)
+		}
+	}
 }
 
 func TestPatchesURLIsNextToTheCatalog(t *testing.T) {
@@ -330,6 +336,9 @@ func TestRowsExplainReasonsAndPartialInstalls(t *testing.T) {
 	}
 	if r := row("STATE state=partial supported=1 backup=1"); r.State != "partial" || !strings.Contains(r.Detail, "not active") || !r.Supported {
 		t.Errorf("partial: %+v", r)
+	}
+	if r := row("STATE state=partial supported=1 backup=1 reason=not-loaded"); r.State != "partial" || !strings.Contains(r.Detail, "restart MPC") {
+		t.Errorf("a partial state with a reason says that reason, not the drive sentence: %+v", r)
 	}
 	if r := row("STATE state=patched supported=1 backup=1"); r.State != "patched" || r.Detail != "" {
 		t.Errorf("patched has no detail: %+v", r)

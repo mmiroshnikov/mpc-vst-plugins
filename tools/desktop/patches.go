@@ -51,6 +51,7 @@ type Patch struct {
 	Backup      string   `json:"backup"`
 	RestartsMPC bool     `json:"restarts_mpc"`
 	Reversible  bool     `json:"reversible"`
+	Screenshot  string   `json:"screenshot,omitempty"` // optional, https only (cleared otherwise)
 }
 
 // patchesURLFor: patches.json sits next to the catalog it is used with.
@@ -86,6 +87,9 @@ func parsePatches(data []byte) ([]Patch, error) {
 		}
 		if !ok {
 			continue
+		}
+		if !isHTTPS(p.Screenshot) {
+			p.Screenshot = ""
 		}
 		seen[p.ID] = true
 		out = append(out, p)
@@ -235,7 +239,11 @@ func PatchRows(dev *Device, patches []Patch, fetch func(Patch) ([]byte, error)) 
 					case "unsupported":
 						r.Detail = unsupportedDetail(p, st)
 					case "partial":
-						r.Detail = "Installed, but not active right now: the drive may not be mounted, or its mount was removed. Check the patch's guide."
+						if t, ok := reasonText[st.Reason]; ok {
+							r.Detail = t
+						} else {
+							r.Detail = "Installed, but not active right now: the drive may not be mounted, or its mount was removed. Check the patch's guide."
+						}
 					}
 				}
 			}
@@ -259,6 +267,10 @@ var reasonText = map[string]string{
 	"no-drive":        "That drive is not mounted.",
 	"not-needed":      "That drive already allows running programs, so the patch is not needed.",
 	"no-noexec-drive": "No drive is mounted that blocks running programs (is the drive plugged in, and does it already work?).",
+	"manual-install":  "It was installed by hand earlier: remove that install first, as its README says.",
+	"launcher":        "MPC's launcher on this device sets LD_PRELOAD in a way the patch does not know.",
+	"not-loaded":      "Installed, but MPC has not loaded it yet: restart MPC.",
+	"not-wired":       "Installed, but no longer in MPC's LD_PRELOAD (a firmware update?): run the patch's install again.",
 }
 
 // unsupportedDetail says why the script would not touch the device, so a bare "not supported" is never all the page shows.

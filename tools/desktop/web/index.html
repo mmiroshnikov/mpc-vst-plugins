@@ -37,6 +37,8 @@ ul.list .t { flex:1; min-width:0; } ul.list .t b { font:700 16px var(--display);
 ul.list .t .d { display:block; color:var(--muted); font-size:13px; }
 .tag { display:inline-block; vertical-align:middle; font:600 11px var(--display); letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--line); border-radius:4px; padding:2px 6px; margin-left:8px; color:var(--muted); }
 .tag.ok { color:var(--ok); border-color:var(--ok); }
+ul.list .shot { flex:none; width:160px; aspect-ratio:2 / 1; overflow:hidden; border-radius:4px; background:var(--lcd); }
+ul.list .shot img { display:block; width:100%; height:100%; object-fit:cover; }
 .drop { border:2px dashed var(--line); border-radius:6px; padding:22px; text-align:center; color:var(--muted); margin-top:14px; cursor:pointer; background:var(--bg); }
 .drop.over { border-color:var(--accent); color:var(--fg); }
 .log { background:var(--lcd); color:var(--lcd-fg); border-radius:6px; padding:12px; font:500 12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; max-height:340px; overflow:auto; margin:12px 0 0; }
@@ -365,6 +367,10 @@ function drawPatches() {
   text($("patchinfo"), j.note || (j.patches.length ? "" : "No device patches are published yet."));
   j.patches.forEach(function (p) {
     var li = el("li"), h = el("div"); h.appendChild(el("b", null, p.title));
+    if (/^https:\/\//.test(p.screenshot || "")) {
+      var sa = el("a", "shot"), img = document.createElement("img"); sa.href = p.screenshot; sa.target = "_blank"; sa.rel = "noopener";
+      img.src = p.screenshot; img.alt = p.title + " screenshot"; img.loading = "lazy"; sa.appendChild(img); li.appendChild(sa);
+    }
     h.appendChild(el("span", "tag" + (p.state === "patched" ? " ok" : p.state === "error" || p.state === "unsupported" ? " up" : ""), PATCH_STATE[p.state] || p.state));
     li.appendChild(h); li.appendChild(el("div", "small", p.summary));
     var ch = "Changes " + p.modifies.join(", ") + (p.restarts_mpc ? "; MPC restarts" : "") + (p.backup ? "; a backup goes to " + p.backup : "") + ". Works on " + p.supports.os + ". By " + p.author + ".";

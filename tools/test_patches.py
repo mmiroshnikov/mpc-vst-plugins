@@ -191,6 +191,13 @@ class ManifestCheck(unittest.TestCase):
         d["patches"][0]["script"]["url"] = "http://example.org/abc/p.sh"
         self.assertTrue(any("https" in e for e in self.errors(d)))
 
+    def test_a_screenshot_must_be_https(self):
+        d = copy.deepcopy(self.doc)
+        d["patches"][0]["screenshot"] = "http://example.org/a.jpg"
+        self.assertTrue(any("screenshot" in e for e in self.errors(d)))
+        d["patches"][0]["screenshot"] = "https://example.org/a.jpg"
+        self.assertEqual(self.errors(d), [])
+
     def test_irreversible_and_missing_fields_fail(self):
         d = copy.deepcopy(self.doc)
         d["patches"][0]["reversible"] = False

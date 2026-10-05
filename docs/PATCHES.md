@@ -61,6 +61,7 @@ A plugin install is additive (files plus one settings entry). A patch rewrites A
 - `url` is pinned to a commit (never a branch), `https` only, and `sha256` is re-checked after download, as the catalog zips are. The sha256 above is the
   current script; it changes with every rebuild, so the manifest entry is updated in the same commit that rebuilds the script.
 - `supports` is advisory text for the page; the script's own checksum gate is what actually refuses.
+- `screenshot` (optional, `https` only) is shown at the top of the patch's row in the app, as on the catalog cards.
 - `modifies`, `backup`, `restarts_mpc`, `reversible` are shown before anything runs and must be true statements (a test per patch checks `uninstall`).
 - A `tools/patch_check.py` validates the file (schema, https, 40-hex commit in the URL, sha256 matches the downloaded or local script, every field present) and
   runs in CI next to `catalog_check.py`.

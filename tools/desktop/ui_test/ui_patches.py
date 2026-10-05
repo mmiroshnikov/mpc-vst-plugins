@@ -24,6 +24,7 @@ def handle(route):
         m = mode["v"]
         if m == "none": ok({"patches": [], "note": "No device patches are published yet.", "connected": True})
         elif m == "fail": ok({"error": "cannot read the patch list: HTTP 500"}, 502)
+        elif m == "shot": ok({"patches": [dict(base, state="stock", screenshot="https://img.example/s.png"), dict(base, id="other", title="Other", state="stock", screenshot="http://img.example/s.png")], "note": "", "connected": True})
         else: ok({"patches": [dict(base, state=m, supported=m != "unsupported", hasBackup=m == "patched", detail="checksum x" if m == "error" else "")], "note": "", "connected": True})
     else: ok({"error": "unexpected " + p}, 500)
 fails = []
@@ -35,6 +36,8 @@ try:
         b = pw.chromium.launch(executable_path=os.environ.get("CHROMIUM") or ("/opt/pw-browsers/chromium" if os.path.exists("/opt/pw-browsers/chromium") else None)); pg = b.new_page(viewport={"width": 1000, "height": 1100})
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
         pg.route("**/api/**", handle)
+        png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
+        pg.route("https://img.example/**", lambda r: r.fulfill(status=200, content_type="image/png", body=png))
         pg.goto("http://127.0.0.1:8811/index.html?t=x"); time.sleep(0.5)
         check("step 7 exists, collapsed", pg.locator("#d7").count() == 1 and not pg.locator("#d7").evaluate("e => e.open"))
         check("looks disabled before connecting", "off" in pg.locator("#s7").get_attribute("class"))
@@ -51,6 +54,10 @@ try:
             check("state %s shows %r" % (st, label), label.lower() in tl and "16-pad drum layout" in t and "/usr/bin/MPC" in t and "MPC restarts" in t)
         check("no apply or undo button in the list", pg.locator("#patchlist button").count() == 0)
         check("guide link goes to the repo", (pg.locator("#patchlist a").get_attribute("href") or "").endswith("/blob/main/tools/mpc_patch/README.md"))
+        mode["v"] = "shot"; pg.click("#patchcheck"); time.sleep(0.5)
+        shots = pg.locator("#patchlist .shot img")
+        check("an https screenshot is shown, an http one is not", shots.count() == 1 and shots.get_attribute("src") == "https://img.example/s.png")
+        check("the screenshot opens the full image", pg.locator("#patchlist a.shot").get_attribute("href") == "https://img.example/s.png")
         mode["v"] = "none"; pg.click("#patchcheck"); time.sleep(0.5)
         check("nothing published", "No device patches are published yet" in pg.locator("#patchinfo").inner_text() and pg.locator("#patchlist li").count() == 0)
         mode["v"] = "fail"; pg.click("#patchcheck"); time.sleep(0.5)
