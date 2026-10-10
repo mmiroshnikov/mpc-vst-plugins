@@ -327,6 +327,15 @@ static void setParameter(AEffect *e, int32_t i, float n) {
         }
         n = clamp01(steps / span);
     }
+    /* List tiles: housekeeping pushes "<key>_on" with audioMasterAutomate, and MPC calls
+     * setParameter from inside that. Feeding the echo back into the engine re-selects the
+     * row that just turned off. A real tap already moved the host Toggle Switch; remember
+     * that value so the next poll only corrects the previous row. */
+    if (p->string_display && w->last_on[i] >= 0) {
+        int on = n > 0.5f ? 1 : 0;
+        if (w->last_on[i] == on + 1) return;
+        w->last_on[i] = (signed char)(on + 1);
+    }
     norm_to_str(p, n, buf, sizeof buf);
     eng_set(w, PARAMS[i].key, buf);
     if (PARAMS[i].momentary && n > 0.5f) w->holdFrames[i] = PARAMS[i].hold_ms > 0 ? (int)(PARAMS[i].hold_ms * 44.1f) : 1;

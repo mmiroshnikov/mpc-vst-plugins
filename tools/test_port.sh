@@ -9,6 +9,10 @@ set -euo pipefail
 MV="$(cd "$(dirname "$0")/.." && pwd)"
 CFG="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 eval "$(python3 "$MV/tools/gen_vst.py" "$CFG" --shell)"
+# libdl is libc on macOS; the device build (glibc 2.31) still needs -ldl for dlopen.
+if [ "$(uname -s)" = Darwin ]; then
+  LIBS=${LIBS//-ldl/}
+fi
 python3 "$MV/tools/gen_vst.py" "$CFG" --params-h
 ADAPTER_SRC=""
 [ -n "$ADAPTER" ] && ADAPTER_SRC="$MV/adapters/$ADAPTER/${ADAPTER}_engine.c"

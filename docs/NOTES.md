@@ -48,6 +48,26 @@ from the Force and may differ on MPC Live/One/X/Key (e.g. `Force Documents` vs `
    with `snd_seq_event_output_direct`, synced to host `ppqPos`/tempo. MPC's own seq client ("MPC") hot-detects the
    new port, creates a matching input ("<client> <port>") and connects it with no restart. Enable Track on it in
    Preferences → MIDI, then any track can select it as MIDI input. Plugin sequencers/arps can drive other tracks.
+   **Force, 2026-10-08 (device):** Maschine Group opened client 130 / "MIDI Out" and MPC subscribed
+   (`129:6 "Maschine Group MIDI Out"`), but `MidiDevices.AutoEnableForTracks` was `0` and the port was
+   absent from `MidiDevices.Table`. Rec wrote no clip events until that input was Enable Track. Do not
+   flip AutoEnable globally on a unit that already has a long MIDI table; add this one port with
+   `track: true` or turn Enable Track in Preferences.
+   **Maschine Group kit switch (offline, 2026-10-08):** loading another group keeps Empty if Empty was
+   selected; if any other pattern was selected, the new group starts on its first pattern.
+   **Maschine Group scan (offline, 2026-10-08):** the default walk is only the plugin `groups/` folder.
+   Walking `/media` and `/sdcard` listed leftover `.mxgrp` files from the user's own library (a Flumex
+   kit under `/media/MPC/M8`) that nobody put in the plugin. Setup → Change folder / Refresh is how a
+   copied `Groups/` + `Samples/` tree is added. A group/pattern row tap that arrives as 0 is ignored so
+   the automate-off echo of the previous row does not unload.
+   **Maschine Group Change folder (offline, 2026-10-09):** `tsize=` + `get=help_6` put a Titillium Value
+   label on top of the button, remapped to the help string. The tap set that string param, not
+   `root_pick`, so the button did nothing. Skin: a near-invisible hit plate on top of the caption,
+   Mouse Down → Toggle Switch, pressed fill `theme_accent`. Needs an MPC restart to load the skin.
+   **Maschine Group folder browser (offline, 2026-10-09):** Change folder and Use folder shared
+   `root_pick`, so the same press opened the list and immediately committed (empty place list =
+   close). Use folder is now `root_use`, and commit is ignored for ~350 ms after open. Refresh
+   has no arrow glyph. Folder rows use a lighter tile fill (`color=2a2622`).
    Most likely stock MPC OS behaviour: MockbaMod's MidiLoop (`tkgl_anyctrl_lt.so`) only filters or blacklists
    ports; it doesn't create them. **Still unconfirmed on a stock unit.** Latency is about one audio block
    (direct, unscheduled send).
@@ -626,6 +646,17 @@ path if the DSP returns nothing. The DSP answers it with real selection state (j
 `patch_slot_N_on` = loaded patch). MPC does not re-read a button's value on `audioMasterUpdateDisplay`, so
 `run_block` also calls `audioMasterAutomate(i, value)` for each such param whenever its `_on` value changes
 (`last_on[]` caches what the host was told). Without that push the highlight showed only sometimes.
+  Follow-up (2026-10-08): MPC calls `setParameter` from inside that `audioMasterAutomate`. Fed back into the
+  engine, the row that just turned off is selected again, so a tap above the current row never sticks and a
+  long list only highlights. The wrapper now ignores that echo (the same index and value it just pushed).
+  A real row touch changes the skin's host-side `Toggle Switch` before `setParameter`; the wrapper must copy
+  that value into `last_on` when the call arrives. Otherwise the cache still thinks the row has its previous
+  value and may never correct it, leaving several rows lit. With the cache synchronized, the next `<key>_on`
+  poll turns the previous row off and leaves only the engine's single selection on.
+  For lists whose rows are mutually exclusive by definition, `list select=<param> select_n=<N>` avoids that
+  independent-switch state entirely: every row is a button in one radio group bound to the shared integer
+  parameter (0 = none, 1..N = row). Until that lands in the skin builder, a row tap must ignore value 0
+  so the automate-off echo of the previous row does not become a new selection.
   Follow-up (2026-10-01, Chordsmith): that push only ran after a parameter set, so a tile whose `_on` changed
   from MIDI alone (a pad plays a chord, nothing on screen touched) never lit. `housekeeping()` now polls every
   `_on` every 10 ms (441 frames) and pushes a change with `audioMasterAutomate` plus an `UpdateDisplay`;
@@ -1304,3 +1335,6 @@ Eleven `mmcblk0pN` dumps, read read-only with `debugfs`. Layout: p1-p6 raw/boot 
 
 ### 2026-10-10: unverified third-party report — Gen2 plugin browser needs `pluginList-arm-64bit`, not `pluginList-arm` (device, not reproduced by us)
 A beta tester of the Hakai VST Manager, testing the Crate Digger aarch64 test release, reports that MPC's plugin browser on a real Gen2 only shows a registered aarch64 `.so` when its entry is under `<VALUE name="pluginList-arm-64bit">`; an entry under `pluginList-arm` sits in `MPC.settings` but never appears in the browser. We have **not** reproduced this ourselves (no aarch64 pilot has loaded on hardware yet), and the one real Gen2 `MPC.settings` we've read offline (above) has only `pluginList-arm`, holding factory plugins — consistent with either key naming being right for third-party `.so` files. Treating it as credible but unconfirmed: `plugin_list.awk` now takes an optional `-v listkey=...`, and `install.sh`/`sync.sh` pick `pluginList-arm-64bit` for an `aarch64` package and `pluginList-arm` otherwise (`tools/desktop/sync.sh` and `tools/desktop/plugin_list.awk` kept identical to the `tools/release/` copies, as `test_catalog.py` checks). **Must be confirmed or corrected on real hardware** by the aarch64 pilot port (docs/GEN2.md item 3) before calling this settled either way.
+
+## 2026-10-09: Maschine Group on an MPC Live (device)
+GROUP and SETUP screenshots in `ports/maschine/docs/` (`tools/screenshot.sh --plugin`). Writing packed evdev events to the ILI2116 node updates absinfo but does not move MPC's UI (the main thread has that node open). Tab switches for the shots were done on the glass. SETUP showed the copied library path and the How to Add NI Groups copy. GROUP showed the kit list, 4×4 pads and pattern cells with 8-Ball Kit loaded (3 samples missing). Writing `/tmp/maschine-pattern.mid` cannot feed GRID Shift+Paste: `/usr/bin/MPC` has no system clipboard, and GRID reads MPC's own event buffer.
